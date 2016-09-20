@@ -1,17 +1,17 @@
-= Spring Initializr
+= Spring Initializr image:https://badges.gitter.im/spring-io/initializr.svg[link="https://gitter.im/spring-io/initializr?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge"]
+
 :wiki: https://github.com/spring-io/initializr/wiki
 :boot-doc: http://docs.spring.io/spring-boot/docs/current/reference/htmlsingle
 :code: https://github.com/spring-io/initializr/blob/master
 
-Spring Initializr is a configurable service to generate a quickstart project. You can see
-our default instance at link:https://start.spring.io[]. It provides a simple web UI to
-configure the project to generate and endpoints that you can use via plain HTTP.
+Spring Initializr provides an extensible API to generate quickstart projects. It also
+provides a configurable service: you can see our default instance at
+link:https://start.spring.io[]. It provides a simple web UI to configure the project
+to generate and endpoints that you can use via plain HTTP.
 
 Spring Initializr also exposes an endpoint that serves its
 {wiki}/Metadata-format[meta-data] in a well-known format to allow third-party
-clients to provide the necessary assistance. {boot-doc}/#cli-init[Spring Boot CLI] is
-using this mechanism to offer a command-line project generator; STS uses it in a similar
-way to offer a project creation wizard.
+clients to provide the necessary assistance.
 
 Finally, Initializr offers a configuration structure to define all the aspects related
 to the project to generate: list of dependencies, supported java and boot versions, etc. Check
@@ -19,16 +19,37 @@ the {code}/initializr-service/application.yml[configuration of our instance] for
 configuration is {wiki}/Configuration-format[also described in details on the wiki].
 
 NOTE: We use the continuous deployment technique to manage our instance; check the
-link:CHANGELOG.adoc[changelog] for an overview of changes
+https://github.com/spring-io/initializr/milestones[milestones page] for an overview of changes
+
+== Modules
+
+Spring Initializr has the following modules:
+
+* `initializr-generator`: standalone project generation library that can be reused in
+many environments (including embedded in your own project)
+* `initializr-web`: REST endpoints and web interface
+* `initializr-actuator`: optional module to provide statistics and metrics on project
+generation
+
+`initializr-service` is an additional module that represents the production instance that
+is available at link:https://start.spring.io[]. It is not enabled by default but you can
+enable the `full` profile in your IDE to easily run it locally.
+
+== Supported interfaces
+
+Spring Initializr can be used as follows:
+
+* With your browser (i.e. link:https://start.spring.io[])
+* In your IDE if you are using STS, IntelliJ IDEA Ultimate or NetBeans (with
+https://github.com/AlexFalappa/nb-springboot[this plugin])
+* On the command-line with {boot-doc}/#cli-init[the Spring Boot CLI] or simply with `cURL` or `HTTPie`
+
+[TIP]
+====
+You can "curl" an instance to get a usage page with examples (try `curl start.spring.io`)
+====
 
 == Generating a project
-
-There are many ways you can use to generate a project using Spring Initializr. You can
-obviously use the https://start.spring.io[embedded web UI] available from the root
-context. Recent versions of STS provide a wizard to assist you in the creation
-of your new project. As from Spring Boot 1.2, the CLI has an `init` command to create
-a new project from the command-line. Using the <<meta-data,meta-data>>, one can easily create
-its own client.
 
 If you click on "Generate Project" on the web ui of our instance, it will download a project
 archive with a Maven-based project and the necessary infrastructure to start a basic Spring
@@ -41,7 +62,8 @@ You could achieve the same result with a simple `curl` command
 $ curl https://start.spring.io/starter.zip -o demo.zip
 ----
 
-The following request attributes are supported:
+The web ui exposes a bunch of options that you can configure. These are mapped to the following
+request attributes:
 
 * Basic information for the generated project: `groupId`, `artifactId`, `version`, `name`,
 `description` and `packageName`
@@ -74,11 +96,27 @@ $ curl https://start.spring.io/starter.tgz -d dependencies=web,actuator \
 -d language=groovy -d type=gradle-project -d baseDir=another-project | tar -xzvf -
 ----
 
-NOTE: The `/starter.tgz` endpoint offers the same feature as `/starter.zip` but  generates
+NOTE: The `/starter.tgz` endpoint offers the same feature as `/starter.zip` but generates
 a compressed tarball instead.
 
 You could use this infrastructure to create your own client since the project is generated
 via a plain HTTP call.
+
+[[customize-form]]
+== Customize form inputs
+
+You can share or bookmark URLs that will automatically customize form inputs. For instance,
+the following URL from the default instance uses `groovy` by default and set the name
+to `Groovy Sample`:
+
+[source,bash]
+----
+https://start.spring.io/#!language=groovy&name=Groovy%20Sample
+----
+
+The following hashbang parameters are supported: `type`, `groupId`, `artifactId`, `name`,
+`description`, `packageName`, `packaging`, `javaVersion` and `language`. Review the section
+above for a description of each of them.
 
 [[meta-data]]
 == Service meta-data
@@ -91,12 +129,13 @@ third-party clients. You can grab the meta-data by _curling_ the root
 $ curl -H 'Accept: application/json' https://start.spring.io
 ----
 
-NOTE: If you use `curl` without an accept header, you'll retrieve a human readable text version
-of the metadata. `HTTPie` is also supported.
+NOTE: As stated above, if you use `curl` without an accept header, you'll retrieve a human
+readable text version of the metadata. `HTTPie` is also supported.
 
-The meta-data basically lists the _capabilities_ of the service, that is the available options
-for all request parameters (`dependencies`, `type`, `bootVersion`, etc.) The web UI
-uses that information to initialize the select options and the tree of available dependencies.
+The meta-data basically lists the _capabilities_ of the service, that is the available
+options for all request parameters (`dependencies`, `type`, `bootVersion`, etc.) The web
+UI uses that information to initialize the select options and the tree of available
+dependencies.
 
 The meta-data also lists the default values for simple _text_ parameter (i.e. the default
 `name` for the project).
@@ -106,9 +145,8 @@ on the wiki].
 
 == Running your own instance
 
-You can easily run your own instance. Spring Initializr defines a _library_ that provides all
-the default features. The library uses Spring Boot so when it is added to a project, it will
-trigger the necessary auto-configuration to deploy the service.
+You can easily run your own instance. The `initializr-web` modules uses Spring Boot so when it
+is added to a project, it will trigger the necessary auto-configuration to deploy the service.
 
 You first need to create or update your configuration to define the necessary attributes that
 your instance will use. Again, check the wiki for a {wiki}/Configuration-format[description
@@ -122,12 +160,13 @@ script below
 ----
 package org.acme.myapp
 
-@Grab('io.spring.initalizr:initializr:1.0.0.BUILD-SNAPSHOT')
+@Grab('io.spring.initializr:initializr-web:1.0.0.BUILD-SNAPSHOT')
+@Grab('spring-boot-starter-web')
 class YourInitializrApplication { }
 ----
 
 NOTE: Spring Initializr is not available on Maven central yet so you will have to build
-the library <<build,from source>> in order to use it in your own environment.
+it <<build,from source>> in order to use it in your own environment.
 
 Once you have created that script (`my-instance.groovy`), place your configuration in the same
 directory and simply execute this command to start the service:
@@ -143,61 +182,23 @@ You may also want to <<run-app,run the default instance locally>>.
 [[build]]
 == Building from Source
 
-You need Java (1.6 or better) and a bash-like shell.
-
-If you are on a Mac and using http://brew.sh/[homebrew], all you need to do to install it is:
-
-[indent=0]
-----
-    $ brew tap pivotal/tap
-    $ brew install springboot
-----
-
-It will install `/usr/local/bin/spring`. You can jump right to <<run-app>>.
-
-An alternative way to install the `spring` command line interface can be installed like this:
-
-[indent=0]
-----
-    $ curl start.spring.io/install.sh | bash
-----
-
-After running that command you should see a `spring` directory:
-
-[indent=0]
-----
-    $ ./spring/bin/spring --help
-
-    usage: spring [--help] [--version]
-       <command> [<args>]
-    ...
-----
-
-You could add that `bin` directory to your `PATH` (the examples below
-assume you did that).
-
-If you don't have `curl` or `zip` you can probably get them (for
-Windows users we recommend http://cygwin.org[cygwin]), or you can
-download the http://start.spring.io/spring.zip[zip file] and unpack
-it yourself.
+You need Java (1.8 or better), Maven 3.2+ and a bash-like shell.
 
 [[building]]
 === Building
 
-The library is located in the `initializr` directory.
+Just invoke the build at the root of the project
 
 [indent=0]
 ----
-    $ cd initializr
     $ mvn clean install
 ----
 
 If you want to run the smoke tests using Geb, you need to enable the
-`smokeTests` profile. Firefox should also be installed on your machine
+`smokeTests` profile. Firefox should also be installed on your machine:
 
 [indent=0]
 ----
-    $ cd initializr
     $ mvn verify -PsmokeTests
 ----
 
@@ -205,14 +206,26 @@ If you want to run the smoke tests using Geb, you need to enable the
 [[run-app]]
 === Running the app locally
 
-Once you have <<building, built the library>>, you can easily start the app using the `spring` command
-from the `initializr-service` directory:
+Once you have <<building, built the library>>, you can easily start the app as any other
+Spring Boot app from the `initializr-service` directory:
 
 [indent=0]
 ----
 	$ cd initializr-service
-    $ spring run app.groovy
+    $ mvn spring-boot:run
 ----
+
+[[run-ide]]
+=== Running the app in an IDE
+
+You should be able to import the projects into your IDE with no
+problems (STS with the m2e Groovy compiler support or IntelliJ IDEA
+definitely work). Once there you can run the `initializr-service` from
+its main method, debug it, and it will reload if you make changes to
+other modules. (You may need to manually enable the "full" profile.)
+This is the recommended way to operate while you are developing the
+application, especially the UI.
+
 
 ## Deploying to Cloud Foundry
 
@@ -226,28 +239,25 @@ If you are on a Mac and using http://brew.sh/[homebrew], install the Cloud Found
 Alternatively, download a suitable binary for your platform from 
 https://console.run.pivotal.io/tools[Pivotal Web Services].
 
-An example Cloud Foundry `manifest.yml` file is provided. You should ensure that
-the application name and URL (name and host values) are suitable for your environment
-before running `cf push`.
+You should ensure that the application name and URL (name and host values) are suitable for
+your environment before running `cf push`.
 
-You can jar up the app and make it executable in any environment.
+First, make sure that you have <<building, built the library>>, the build the service from
+the `initializr-service` directory:
+Make sure first that the jar has been created:
 
 [indent=0]
 ----
-    $ spring jar start.jar app.groovy
+    $ cd initializr-service
+    $ mvn package
 ----
 
 Once the jar has been created, you can push the application:
 
 [indent=0]
 ----
-    $ cf push start -p start.jar -n start-<space>
+    $ cf push your-initializr -p target/initializr-service.jar
 ----
-
-Where `<space>` is the name of the space. As a failsafe, and a
-reminder to be explicit, the deployment will fail in production
-without the `-n`. It is needed to select the route because there is a
-manifest that defaults it to `start-development`.
 
 == License
 Spring Initializr is Open Source software released under the
